@@ -40,6 +40,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
   
+    - name: Set up AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+  
     - name: Set up kubectl
       uses: azure/setup-kubectl@v1
       with:
@@ -51,9 +58,10 @@ jobs:
       run: |
         mkdir -p ~/.kube
         echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+        chmod 600 ~/.kube/config
   
     - name: Deploy with Helm
       run: |
         helm upgrade --install barkuni-app ./manifests/helmchart \
           --set image.repository=${{ secrets.DOCKER_USERNAME }}/barkuni-flask-app \
-        --set image.tag=latest
+          --set image.tag=latest
