@@ -32,24 +32,31 @@ jobs:
         docker build -t ${{ secrets.DOCKER_USERNAME }}/barkuni-flask-app:latest .
         docker push ${{ secrets.DOCKER_USERNAME }}/barkuni-flask-app:latest
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build_and_push
+deploy:
+  runs-on: ubuntu-latest
+  needs: build_and_push
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+  steps:
+  - name: Checkout code
+    uses: actions/checkout@v2
 
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v1
-      with:
-        version: 'v1.21.0'
+  - name: Set up kubectl
+    uses: azure/setup-kubectl@v1
+    with:
+      version: 'v1.21.0'
 
-    - name: Configure kubectl
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
-      run: |
-        echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+  - name: Configure kubectl
+    env:
+      KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+    run: |
+      mkdir -p ~/.kube
+      echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+
+  - name: Deploy with Helm
+    run: |
+      helm upgrade --install barkuni-app ./manifests/helmchart \
+        --set image.repository=${{ secrets.DOCKER_USERNAME }}/barkuni-flask-app \
+        --set image.tag=latest
 
     - name: Deploy with Helm
       run: |
